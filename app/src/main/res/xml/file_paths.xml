@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Example file_paths.xml -->
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Example: Allow access to the app's internal cache directory -->
+    <cache-path name="internal_cache" path="." />
+
+    <!-- Example: Allow access to the app's external cache directory (if needed) -->
+    <!--
+    <external-cache-path name="external_cache" path="." />
+    -->
+
+    <!-- Example: Allow access to specific external files directory (if needed) -->
+    <!--
+    <external-files-path name="external_files" path="." />
+    -->
+
+    <!-- Add other paths as required by your app's FileProvider usage -->
+</paths>

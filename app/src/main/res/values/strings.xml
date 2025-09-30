@@ -1,0 +1,8 @@
+<resources>
+    <string name="app_name">App Cloner</string>
+    <string name="select_apk">Select APK</string>
+    <string name="process_apk">Process APK</string>
+    <string name="select_an_apk">Select an APK</string>
+    <string name="app_icon">App icon</string>
+    <string name="menu">Menu</string>
+</resources>

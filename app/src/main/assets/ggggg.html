@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<title>AppCloner 3.0 Config</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no"/>
+<style>
+:root{--bg:#fff;--bg2:#f5f5f5;--text:#222;--accent:#00796b}
+[data-theme=dark]{--bg:#121212;--bg2:#1e1e1e;--text:#eee;--accent:#4db6ac}
+*{box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial}
+body{margin:0;background:var(--bg);color:var(--text);transition:background .3s,color .3s}
+header{position:sticky;top:0;background:var(--accent);color:#fff;padding:.6rem 1rem;font-size:1.1rem;font-weight:600;display:flex;justify-content:space-between;z-index:10}
+header button{background:none;border:none;font-size:1.3rem;color:#fff}
+main{padding:1rem;padding-bottom:4.5rem}
+.tab{display:none}.tab.active{display:block}
+label{display:flex;align-items:center;gap:.4rem;margin:.6rem 0;font-size:.9rem}
+label span{flex:1}
+label input,label select,label textarea{flex:2;padding:.4rem;border:1px solid #ccc;border-radius:6px;background:var(--bg);color:var(--text)}
+button.rand{margin-left:.4rem;padding:.3rem .5rem;font-size:.7rem;background:var(--accent);color:#fff;border:none;border-radius:4px}
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;height:3.5rem;background:var(--bg2);display:flex;border-top:1px solid #4442}
+.bottom-nav button{flex:1;border:none;background:none;color:var(--text);font-size:.7rem;display:flex;flex-direction:column;justify-content:center;align-items:center}
+.bottom-nav button.active{color:var(--accent)}
+button.process{position:fixed;bottom:4.5rem;left:50%;transform:translateX(-50%);background:var(--accent);color:#fff;border:none;border-radius:50%;width:3.2rem;height:3.2rem;font-size:1.3rem;z-index:11}
+.hidden { display: none; }
+.toast {
+  visibility: hidden;
+  min-width: 250px;
+  margin-left: -125px;
+  background-color: #333;
+  color: #fff;
+  text-align: center;
+  border-radius: 2px;
+  padding: 16px;
+  position: fixed;
+  z-index: 100;
+  left: 50%;
+  top: 30px;
+  font-size: 17px;
+}
+.toast.show {
+  visibility: visible;
+  animation: fadein 0.5s, fadeout 0.5s 2.5s;
+}
+@keyframes fadein {
+  from {top: 0; opacity: 0;}
+  to {top: 30px; opacity: 1;}
+}
+@keyframes fadeout {
+  from {top: 30px; opacity: 1;}
+  to {top: 0; opacity: 0;}
+}
+</style>
+</head>
+<body>
+<div id="toast" class="toast"></div>
+<header>
+  <span>AppCloner 3.0</span>
+  <button id="themeToggle" title="Dark / Light">🌗</button>
+</header>
+<main>
+  <!-- TAB Identity -->
+  <section class="tab active" id="tab-identity">
+    <label><span>ANDROID_ID</span><input id="android_id" placeholder="deadbeefcafebabe"><button class="rand" onclick="randHex('android_id',16)">🎲</button></label>
+    <label><span>Wi-Fi MAC</span><input id="wifi_mac" placeholder="02:00:00:00:00:00"><button class="rand" onclick="randMAC('wifi_mac')">🎲</button></label>
+    <label><span>BT MAC</span><input id="bt_mac" value="BE:EF:BE:EF:00:00"><button class="rand" onclick="randMAC('bt_mac')">🎲</button></label>
+    <label><span>Serial</span><input id="serial" value="FAKE_SERIAL_12345"><button class="rand" onclick="randHex('serial',14)">🎲</button></label>
+    <label><span>IMSI</span><input id="imsi" value="460001234567890"><button class="rand" onclick="randHex('imsi',15)">🎲</button></label>
+  </section>
+  <!-- TAB Build -->
+  <section class="tab" id="tab-build">
+    <label><span>Manufacturer</span><input id="build_MANUFACTURER" placeholder="e.g., Google, Samsung"/></label>
+    <label><span>Brand</span><input id="build_BRAND" placeholder="e.g., google, samsung"/></label>
+    <label><span>Model</span><input id="build_MODEL" placeholder="e.g., Pixel 8 Pro, SM-G991B"/></label>
+    <label><span>Product</span><input id="build_PRODUCT" placeholder="e.g., husky, star2qlte"/></label>
+    <label><span>Device</span><input id="build_DEVICE" placeholder="e.g., husky, star2qlte"/></label>
+    <label><span>Hardware</span><input id="build_HARDWARE" placeholder="e.g., husky, qcom"/></label>
+    <label><span>Fingerprint</span><input id="build_FINGERPRINT" placeholder="e.g., google/husky/..."/></label>
+    <button class="rand" onclick="randomizeBuildProps()" style="margin-top: 0.5rem; align-self: flex-start;">🎲 Randomize Build Props</button>
+  </section>
+  <!-- TAB UA & Camera -->
+  <section class="tab" id="tab-ua-cam">
+    <label><span>WebView UA</span><textarea id="user_agent_string" rows="2" placeholder="Mozilla/5.0 …"></textarea></label>
+    <label><input type="checkbox" id="fakeCamera"/> Enable fake camera</label>
+    <label><span>JPEG path</span><input id="fakeCameraPath" placeholder="assets/fake_frame.jpg"/></label>
+  </section>
+  <!-- TAB Network -->
+  <section class="tab" id="tab-network">
+    <!-- Removed trailing spaces from default URL -->
+    <label><span>DNS-over-HTTPS</span><input id="dns_over_https_url" placeholder="https://dns.google/dns-query"/></label>
+    <label><span>SOCKS Host</span><input id="socks_proxy_host" placeholder="127.0.0.1"/></label>
+    <label><span>SOCKS Port</span><input type="number" id="socks_proxy_port" min="1" max="65535"/></label>
+  </section>
+  <!-- TAB Bundle -->
+  <section class="tab" id="tab-bundle">
+    <label><input type="checkbox" id="bundleAppData"/> Bundle app-data on build</label>
+    <label id="bundleRow" class="hidden"><span>Data ZIP</span><input type="file" id="bundleFile" accept=".zip"/></label>
+    <label><input type="checkbox" id="restoreAppDataOnEveryStart"/> Restore on every launch</label>
+  </section>
+  <!-- TAB Location -->
+  <section class="tab" id="tab-location">
+    <label><span>Latitude</span><input type="number" step="any" id="fake_lat" placeholder="37.421998"><button class="rand" onclick="randLatLon()">🎲</button></label>
+    <label><span>Longitude</span><input type="number" step="any" id="fake_lon" placeholder="-122.084"><button class="rand" onclick="randLatLon()">🎲</button></label>
+    <label><span>Altitude (m)</span><input type="number" id="fake_alt" placeholder="0"/></label>
+  </section>
+  <!-- TAB Misc -->
+  <section class="tab" id="tab-misc">
+    <label>Skip dialogs (comma)<input id="skip_dialogs" placeholder="rate,update"/></label>
+  </section>
+</main>
+<button class="process" title="Process APK" onclick="processApk()">▶️</button>
+<nav class="bottom-nav">
+  <button data-tab="identity" class="active"><span>👤</span>ID</button>
+  <button data-tab="build"><span>📱</span>Build</button>
+  <button data-tab="ua-cam"><span>📷</span>UA/Cam</button>
+  <button data-tab="network"><span>🌐</span>Net</button>
+  <button data-tab="bundle"><span>📦</span>Bundle</button>
+  <button data-tab="location"><span>📍</span>GPS</button>
+  <button data-tab="misc"><span>⚙️</span>Misc</button>
+</nav>
+<script>
+/* ---------- RANDOM HELPERS ---------- */
+function randHex(id,len){
+    document.getElementById(id).value=Array.from({length:len},()=>Math.floor(Math.random()*16).toString(16)).join('')
+}
+function randMAC(id){
+    document.getElementById(id).value=Array.from({length:6},()=>Math.floor(Math.random()*256).toString(16).padStart(2,'0')).join(':')
+}
+function randLatLon(){
+  document.getElementById('fake_lat').value=(Math.random()*180-90).toFixed(6);
+  document.getElementById('fake_lon').value=(Math.random()*360-180).toFixed(6);
+}
+
+// --- New function for randomizing build properties ---
+const fakeBuildData = [
+  {
+    manufacturer: "Google",
+    brand: "google",
+    model: "Pixel 8 Pro",
+    product: "husky",
+    device: "husky",
+    hardware: "husky",
+    fingerprint: "google/husky/husky:14/UP1A.231105.003/11260368:user/release-keys"
+  },
+  {
+    manufacturer: "Samsung",
+    brand: "samsung",
+    model: "SM-G991B",
+    product: "star2qlte",
+    device: "star2qlte",
+    hardware: "qcom",
+    fingerprint: "samsung/star2qlte/star2qlte:14/TP1A.220624.014/G991BXXU3CVI3:user/release-keys"
+  },
+  {
+    manufacturer: "Xiaomi",
+    brand: "Xiaomi",
+    model: "M2007J20CG",
+    product: "alioth",
+    device: "alioth",
+    hardware: "qcom",
+    fingerprint: "Xiaomi/alioth/alioth:13/RKQ1.211001.001/V14.0.3.0.TKHCNXM:user/release-keys"
+  },
+  {
+    manufacturer: "OnePlus",
+    brand: "OnePlus",
+    model: "GM1917",
+    product: "OnePlus7Pro",
+    device: "OnePlus7Pro",
+    hardware: "qcom",
+    fingerprint: "OnePlus/OnePlus7Pro/OnePlus7Pro:13/RKQ1.211119.001/R.202209160053:user/release-keys"
+  }
+  // Add more entries as needed
+];
+
+function randomizeBuildProps() {
+  const randomIndex = Math.floor(Math.random() * fakeBuildData.length);
+  const selectedBuild = fakeBuildData[randomIndex];
+  document.getElementById('build_MANUFACTURER').value = selectedBuild.manufacturer || "";
+  document.getElementById('build_BRAND').value = selectedBuild.brand || "";
+  document.getElementById('build_MODEL').value = selectedBuild.model || "";
+  document.getElementById('build_PRODUCT').value = selectedBuild.product || "";
+  document.getElementById('build_DEVICE').value = selectedBuild.device || "";
+  document.getElementById('build_HARDWARE').value = selectedBuild.hardware || "";
+  document.getElementById('build_FINGERPRINT').value = selectedBuild.fingerprint || "";
+  // Save immediately after randomizing
+  saveConfig();
+}
+/* ---------- TOAST NOTIFICATION ---------- */
+function showToast(message) {
+  var toast = document.getElementById("toast");
+  toast.innerText = message;
+  toast.className = "toast show";
+  setTimeout(function(){ toast.className = toast.className.replace("show", ""); }, 3000);
+}
+/* ---------- CONFIG ---------- */
+// Updated defaults to include new build props
+const defaults={
+  android_id:"deadbeefcafebabe",wifi_mac:"02:00:00:00:00:00",bt_mac:"BE:EF:BE:EF:00:00",
+  serial:"FAKE_SERIAL_12345",imsi:"460001234567890",
+  build_MANUFACTURER:"", // Placeholder, will be randomized on load if empty
+  build_BRAND:"",
+  build_MODEL:"",
+  build_PRODUCT:"",
+  build_DEVICE:"",
+  build_HARDWARE:"",
+  build_FINGERPRINT:"",
+  dns_over_https_url:"https://dns.google/dns-query", // Cleaned URL
+  socks_proxy_host:"127.0.0.1",socks_proxy_port:1080,
+  user_agent_string:"Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Mobile Safari/537.36",
+  fakeCamera:true,fakeCameraPath:"assets/fake_frame.jpg",
+  bundleAppData:false,restoreAppDataOnEveryStart:false,
+  originalPackageName:"com.example.app",fake_lat:37.421998,fake_lon:-122.084,fake_alt:0,
+  skip_dialogs:"rate,update,feedback"
+};
+
+function loadConfig(){
+  const saved=JSON.parse(localStorage.getItem('cloner')||'{}');
+  const config = {...defaults,...saved};
+
+  Object.entries(config).forEach(([k,v])=>{
+    const el=document.getElementById(k);
+    if(!el)return;
+    el.type==='checkbox'?el.checked=!!v:el.value=v;
+  });
+
+  // Check if build props are empty (default) and randomize them
+  const buildPropsEmpty = !config.build_MANUFACTURER && !config.build_BRAND &&
+                          !config.build_MODEL && !config.build_PRODUCT &&
+                          !config.build_DEVICE && !config.build_HARDWARE &&
+                          !config.build_FINGERPRINT;
+  if (buildPropsEmpty) {
+      randomizeBuildProps(); // Randomize only if all are empty/default
+  }
+
+  document.getElementById('bundleRow').classList.toggle('hidden',!document.getElementById('bundleAppData').checked);
+}
+
+function saveConfig(){
+  const obj={};
+  document.querySelectorAll('input, textarea').forEach(el=>{ // Include textarea
+    if(!el.id)return;
+    obj[el.id]=el.type==='checkbox'?el.checked:el.value;
+  });
+  // Ensure skip_dialogs is saved as a string, not split yet
+  // Splitting should happen only when sending to Java if needed there
+  localStorage.setItem('cloner',JSON.stringify(obj));
+  return obj;
+}
+/* ---------- PROCESS ---------- */
+function processApk(){
+  const cfg=saveConfig();
+  // Ensure skip_dialogs is an array for JSON consistency if needed by backend
+  // Otherwise, keep as comma-separated string
+  // cfg.skip_dialogs = cfg.skip_dialogs.split(',').map(s=>s.trim()).filter(s=>s); // Optional split here
+  // Convert the config object to a JSON string
+  const jsonString = JSON.stringify(cfg, null, 2);
+  // Check if the Android bridge is available
+  if(window.AndroidBridge && typeof window.AndroidBridge.startProcess === 'function'){
+    // Send the JSON string directly to the Android app
+    window.AndroidBridge.startProcess(jsonString);
+  }else{
+    // If the bridge is not available, show an error or handle it gracefully
+    // This state should ideally not be reached in the app, but good for debugging in browser
+    console.error("AndroidBridge not available!");
+    showToast("Error: Cannot connect to AppCloner engine.");
+    // alert("AndroidBridge not available! This interface must be run inside the AppCloner app.");
+  }
+}
+/* ---------- NAV ---------- */
+document.querySelectorAll('.bottom-nav button').forEach(btn=>{
+  btn.onclick=()=>{
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.bottom-nav button').forEach(b=>b.classList.remove('active'));
+    document.getElementById('tab-'+btn.dataset.tab).classList.add('active');
+    btn.classList.add('active');
+  };
+});
+document.getElementById('themeToggle').onclick=()=>{
+  document.documentElement.dataset.theme=document.documentElement.dataset.theme==='dark'?'light':'dark';
+};
+document.getElementById('bundleAppData').onchange=e=>{
+  document.getElementById('bundleRow').classList.toggle('hidden',!e.target.checked);
+};
+document.addEventListener('input',saveConfig);
+window.onload = loadConfig; // Ensure loadConfig runs after DOM is ready
+</script>
+</body>
+</html>
