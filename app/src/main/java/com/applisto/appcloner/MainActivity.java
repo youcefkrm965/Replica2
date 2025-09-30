@@ -22,13 +22,28 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.*;
+import android.widget.BaseAdapter;
+import android.widget.Button;
+import android.widget.CheckBox;
+import android.widget.EditText;
+import android.widget.FrameLayout;
+import android.widget.ImageButton;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
+import android.widget.ListView;
+import android.widget.PopupMenu;
+import android.widget.ScrollView;
+import android.widget.Spinner;
+import android.widget.Switch;
+import android.widget.TextView;
+import android.widget.Toast;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.FileProvider;
 import com.android.apksig.ApkSigner; // Ensure ApkProcessor.java is present and this import is valid
+import androidx.appcompat.widget.Toolbar;
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import org.json.JSONException;
@@ -48,7 +63,7 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
 import java.util.zip.ZipOutputStream;
 
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements ClonedAppMenuBottomSheet.BottomSheetListener {
     private static final String TAG = "MainActivity";
     private static final String INJECTED_PROVIDER_SUFFIX = ".com.applisto.appcloner.DefaultProvider";
     private static final Pattern SIG_PATH = Pattern.compile(
@@ -84,7 +99,6 @@ public class MainActivity extends AppCompatActivity {
     }
     private FloatingActionButton selectApkBtn;
     private FloatingActionButton processApkBtn;
-    private TextView selectedTxt, statusTxt;
     private ListView installedAppsList, clonedAppsList;
     private TabLayout tabLayout;
     private FrameLayout settingsEditorContainer;
@@ -111,10 +125,8 @@ public class MainActivity extends AppCompatActivity {
                 String errorMessage = intent.getStringExtra("error_message");
                 runOnUiThread(() -> {
                     if (success && exportPath != null) {
-                        statusTxt.setText("Data export completed for " + packageName);
                         Toast.makeText(MainActivity.this, "Data exported to: " + exportPath, Toast.LENGTH_LONG).show();
                     } else {
-                        statusTxt.setText("Data export failed for " + packageName);
                         String message = "Export failed";
                         if (errorMessage != null) {
                             message += ": " + errorMessage;
@@ -131,16 +143,14 @@ public class MainActivity extends AppCompatActivity {
                     inputApkUri = res.getData().getData();
                     if (inputApkUri != null) {
                         if (!isValidApk(inputApkUri)) {
-                             statusTxt.setText("Error: Invalid APK file selected");
+                             Toast.makeText(MainActivity.this, "Error: Invalid APK file selected", Toast.LENGTH_SHORT).show();
                              inputApkUri = null;
-                             selectedTxt.setText("Select an APK");
                              processApkBtn.setEnabled(false);
                              selectedAppInfo = null;
                              hideSettingsEditor();
                              return;
                         }
-                        selectedTxt.setText("Selected: " + inputApkUri.getLastPathSegment());
-                        statusTxt.setText("APK selected. Ready to process.");
+                        Toast.makeText(MainActivity.this, "APK selected. Ready to process.", Toast.LENGTH_SHORT).show();
                         selectedAppInfo = null;
                         AppInfo externalApkInfo = new AppInfo();
                         externalApkInfo.appName = "External APK: " + inputApkUri.getLastPathSegment();
@@ -154,7 +164,7 @@ public class MainActivity extends AppCompatActivity {
                 if (res.getResultCode() == Activity.RESULT_OK && res.getData() != null) {
                     outputApkUri = res.getData().getData();
                     if (outputApkUri != null) {
-                        statusTxt.setText("Processing...");
+                        Toast.makeText(MainActivity.this, "Processing...", Toast.LENGTH_SHORT).show();
                         startProcessing();
                     }
                 }
@@ -1090,10 +1100,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void initViews() {
+        Toolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+
         selectApkBtn  = findViewById(R.id.selectApkButton);
         processApkBtn = findViewById(R.id.processApkButton);
-        selectedTxt   = findViewById(R.id.selectedApkText);
-        statusTxt     = findViewById(R.id.statusText);
         installedAppsList = findViewById(R.id.installedAppsList);
         clonedAppsList = findViewById(R.id.clonedAppsList);
         tabLayout = findViewById(R.id.tabLayout);
@@ -1157,11 +1168,14 @@ public class MainActivity extends AppCompatActivity {
                     inChannel.transferTo(0, inChannel.size(), outChannel);
                     inputApkUri = Uri.fromFile(cachedApkFile);
                     selectedAppInfo = new SelectedAppInfo(app.packageName, app.appName, cachedApkFile);
-                    selectedTxt.setText("Selected App: " + app.appName);
-                    statusTxt.setText("App selected. Ready to process.");
                     Toast.makeText(MainActivity.this, "Selected: " + app.appName, Toast.LENGTH_SHORT).show();
                 } catch (IOException e) {
                     Log.e(TAG, "Failed to copy APK to cache", e);
+-                    Toast.makeText(MainActivity.this, "Error: Failed to access app APK.", Toast.LENGTH_SHORT).show();
++                    Toast.makeText(MainActivity.this, "Error: Failed to access app APK.", Toast.LENGTH_SHORT).show();
+                     clearSelection();
+                     cachedApkFile.delete();
+                 }
                     Toast.makeText(MainActivity.this, "Error: Failed to access app APK.", Toast.LENGTH_SHORT).show();
                     clearSelection();
                     cachedApkFile.delete();
@@ -1747,6 +1761,20 @@ public class MainActivity extends AppCompatActivity {
             Toast.makeText(this, "Failed to request export from " + targetPackageName + ". Is the app correctly cloned?", Toast.LENGTH_LONG).show();
         }
     }
+    @Override
+    public void onOptionClick(int optionId, AppInfo appInfo) {
+        if (optionId == R.id.action_edit_prefs) {
+            Intent i = new Intent(MainActivity.this, PrefsEditorActivity.class);
+            i.putExtra("pkg", appInfo.packageName);
+            i.putExtra("appName", appInfo.appName);
+            startActivity(i);
+        } else if (optionId == R.id.action_export_data) {
+            triggerExportData(appInfo.packageName);
+        } else if (optionId == R.id.action_uninstall) {
+            confirmAndUninstallApp(appInfo);
+        }
+    }
+
     private void confirmAndUninstallApp(AppInfo appInfo) {
         new androidx.appcompat.app.AlertDialog.Builder(this)
                 .setTitle("Uninstall App")
@@ -1843,34 +1871,8 @@ public class MainActivity extends AppCompatActivity {
                     menuButton.setOnClickListener(v -> {
                         AppInfo clickedApp = (AppInfo) v.getTag();
                         if (clickedApp != null) {
-                            PopupMenu tempPopup = new PopupMenu(MainActivity.this, v);
-                            Menu menu = tempPopup.getMenu();
-                            getMenuInflater().inflate(R.menu.cloned_app_menu, menu);
-
-                            List<MenuItem> menuItems = new ArrayList<>();
-                            for (int i = 0; i < menu.size(); i++) {
-                                menuItems.add(menu.getItem(i));
-                            }
-
-                            MenuAdapter adapter = new MenuAdapter(MainActivity.this, menuItems);
-
-                            new com.google.android.material.dialog.MaterialAlertDialogBuilder(MainActivity.this)
-                                    .setTitle(clickedApp.appName)
-                                    .setAdapter(adapter, (dialog, which) -> {
-                                        MenuItem selectedItem = menuItems.get(which);
-                                        int itemId = selectedItem.getItemId();
-                                        if (itemId == R.id.action_edit_prefs) {
-                                            Intent i = new Intent(MainActivity.this, PrefsEditorActivity.class);
-                                            i.putExtra("pkg", clickedApp.packageName);
-                                            i.putExtra("appName", clickedApp.appName);
-                                            startActivity(i);
-                                        } else if (itemId == R.id.action_export_data) {
-                                            triggerExportData(clickedApp.packageName);
-                                        } else if (itemId == R.id.action_uninstall) {
-                                            confirmAndUninstallApp(clickedApp);
-                                        }
-                                    })
-                                    .show();
+                            ClonedAppMenuBottomSheet bottomSheet = ClonedAppMenuBottomSheet.newInstance(clickedApp);
+                            bottomSheet.show(getSupportFragmentManager(), ClonedAppMenuBottomSheet.TAG);
                         }
                     });
                 } else {
