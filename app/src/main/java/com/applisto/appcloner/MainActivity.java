@@ -16,7 +16,10 @@ import android.text.InputFilter;
 import android.text.InputType;
 import android.text.method.DigitsKeyListener;
 import android.util.Log;
+import android.view.LayoutInflater;
+import android.view.Menu;
 import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.*;
@@ -1778,6 +1781,29 @@ public class MainActivity extends AppCompatActivity {
         String packageName;
         Drawable icon;
     }
+
+    private class MenuAdapter extends ArrayAdapter<MenuItem> {
+        public MenuAdapter(Context context, List<MenuItem> items) {
+            super(context, 0, items);
+        }
+
+        @Override
+        public View getView(int position, View convertView, ViewGroup parent) {
+            if (convertView == null) {
+                convertView = LayoutInflater.from(getContext()).inflate(R.layout.dialog_menu_item, parent, false);
+            }
+
+            MenuItem menuItem = getItem(position);
+
+            ImageView iconView = convertView.findViewById(R.id.menu_item_icon);
+            TextView titleView = convertView.findViewById(R.id.menu_item_title);
+
+            iconView.setImageDrawable(menuItem.getIcon());
+            titleView.setText(menuItem.getTitle());
+
+            return convertView;
+        }
+    }
     private class AppListAdapter extends BaseAdapter {
         private final List<AppInfo> apps;
         private final boolean isClonedAppsAdapter;
@@ -1817,27 +1843,34 @@ public class MainActivity extends AppCompatActivity {
                     menuButton.setOnClickListener(v -> {
                         AppInfo clickedApp = (AppInfo) v.getTag();
                         if (clickedApp != null) {
-                            PopupMenu popup = new PopupMenu(MainActivity.this, v);
-                            MenuInflater inflater = popup.getMenuInflater();
-                            inflater.inflate(R.menu.cloned_app_menu, popup.getMenu());
-                            popup.setOnMenuItemClickListener(item -> {
-                                int itemId = item.getItemId();
-                                if (itemId == R.id.action_edit_prefs) {
-                                    Intent i = new Intent(MainActivity.this, PrefsEditorActivity.class);
-                                    i.putExtra("pkg", clickedApp.packageName);
-                                    i.putExtra("appName", clickedApp.appName);
-                                    startActivity(i);
-                                    return true;
-                                } else if (itemId == R.id.action_export_data) {
-                                    triggerExportData(clickedApp.packageName);
-                                    return true;
-                                } else if (itemId == R.id.action_uninstall) {
-                                    confirmAndUninstallApp(clickedApp);
-                                    return true;
-                                }
-                                return false;
-                            });
-                            popup.show();
+                            PopupMenu tempPopup = new PopupMenu(MainActivity.this, v);
+                            Menu menu = tempPopup.getMenu();
+                            getMenuInflater().inflate(R.menu.cloned_app_menu, menu);
+
+                            List<MenuItem> menuItems = new ArrayList<>();
+                            for (int i = 0; i < menu.size(); i++) {
+                                menuItems.add(menu.getItem(i));
+                            }
+
+                            MenuAdapter adapter = new MenuAdapter(MainActivity.this, menuItems);
+
+                            new com.google.android.material.dialog.MaterialAlertDialogBuilder(MainActivity.this)
+                                    .setTitle(clickedApp.appName)
+                                    .setAdapter(adapter, (dialog, which) -> {
+                                        MenuItem selectedItem = menuItems.get(which);
+                                        int itemId = selectedItem.getItemId();
+                                        if (itemId == R.id.action_edit_prefs) {
+                                            Intent i = new Intent(MainActivity.this, PrefsEditorActivity.class);
+                                            i.putExtra("pkg", clickedApp.packageName);
+                                            i.putExtra("appName", clickedApp.appName);
+                                            startActivity(i);
+                                        } else if (itemId == R.id.action_export_data) {
+                                            triggerExportData(clickedApp.packageName);
+                                        } else if (itemId == R.id.action_uninstall) {
+                                            confirmAndUninstallApp(clickedApp);
+                                        }
+                                    })
+                                    .show();
                         }
                     });
                 } else {
